@@ -35,7 +35,15 @@ exports.login = async (req, res) => {
       expiresIn: "1d",
     });
 
-    res.json({ token, userType: user.userType });
+    // ✅ Send back user info too
+    res.json({
+      token,
+      userType: user.userType,
+      user: {
+        name: user.name,
+        email: user.email,
+      },
+    });
   } catch (err) {
     res.status(500).send("Server error");
   }

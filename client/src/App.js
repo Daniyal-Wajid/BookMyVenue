@@ -10,6 +10,7 @@ import ServiceDetails from "./pages/ServiceDetails";
 import ServiceEdit from "./pages/ServiceEdit";
 import ServiceDetail from "./pages/ServiceDetail";
 import Layout from "./components/Layout";
+import VenueManagement from "./pages/VenueManagement";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/business-dashboard" element={<BusinessDashboard />} />
           <Route path="/business/service/:id" element={<ServiceDetails />} />
           <Route path="/business/service/:id/edit" element={<ServiceEdit />} />
+          <Route path="/business/manage-venue" element={<VenueManagement />} />
           <Route path="/service/:id" element={<ServiceDetail />} />
         </Routes>
       </Layout>

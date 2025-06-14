@@ -14,7 +14,7 @@ export default function Dashboard() {
   }, [navigate]);
 
   return (
-    <div className="p-10">
+    <div className="p-10 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
 
       {userType === "admin" && <p>Welcome Admin, manage everything here!</p>}

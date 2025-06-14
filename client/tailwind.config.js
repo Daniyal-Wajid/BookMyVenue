@@ -1,10 +1,8 @@
 /** @type {import('tailwindcss').Config} */
+// tailwind.config.js
 module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}", // this tells Tailwind to scan all your component files
-  ],
-  theme: {
-    extend: {},
-  },
+  darkMode: "class", // 👈 important
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  theme: { extend: {} },
   plugins: [],
 };
