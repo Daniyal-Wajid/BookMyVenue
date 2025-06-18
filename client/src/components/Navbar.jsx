@@ -60,7 +60,7 @@ export default function Navbar() {
             </Link>
 
             <Link
-              to="/bookings"
+              to="/my-bookings"
               className="text-gray-700 dark:text-gray-200 hover:underline"
             >
               Bookings

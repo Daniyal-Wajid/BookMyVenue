@@ -1,3 +1,4 @@
+// ServiceDetail.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -10,6 +11,8 @@ const ServiceDetail = () => {
   const [decorItems, setDecorItems] = useState([]);
   const [cateringItems, setCateringItems] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
+  const [eventDate, setEventDate] = useState("");
+  const [bookingMsg, setBookingMsg] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,8 +35,37 @@ const ServiceDetail = () => {
     fetchDetails();
   }, [id]);
 
-  if (loading) return <div className="p-6 text-center text-gray-500">Loading...</div>;
-  if (error) return <div className="p-6 text-center text-red-500">{error}</div>;
+  const handleBooking = async () => {
+    if (!eventDate) return alert("Please select an event date.");
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const res = await api.post(
+        "/booking/book",
+        {
+          venueId: venue._id,
+          businessId: venue.userId,
+          decorIds: decorItems.map((d) => d._id),
+          cateringIds: cateringItems.map((c) => c._id),
+          menuIds: menuItems.map((m) => m._id),
+          eventDate,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      );
+      setBookingMsg("Booking successful!");
+    } catch (err) {
+      console.error(err);
+      alert("Booking failed.");
+    }
+  };
+
+  if (loading)
+    return <div className="p-6 text-center text-gray-500">Loading...</div>;
+  if (error)
+    return <div className="p-6 text-center text-red-500">{error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
@@ -66,6 +98,36 @@ const ServiceDetail = () => {
               {venue.occasionTypes?.length > 0 ? venue.occasionTypes.join(", ") : "N/A"}
             </p>
           </div>
+        </div>
+
+        {/* Booking Form */}
+        <div className="mb-10 bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
+          <h2 className="text-2xl font-semibold mb-4 text-indigo-600 dark:text-indigo-400">
+            🗓️ Book This Service
+          </h2>
+
+          <div className="mb-4">
+            <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              Event Date
+            </label>
+            <input
+              type="date"
+              className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={handleBooking}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          >
+            Confirm Booking
+          </button>
+
+          {bookingMsg && (
+            <p className="mt-4 text-sm text-green-600 dark:text-green-400">{bookingMsg}</p>
+          )}
         </div>
 
         {/* Decor Items */}

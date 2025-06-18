@@ -12,6 +12,7 @@ import ServiceDetail from "./pages/ServiceDetail";
 import Layout from "./components/Layout";
 import SearchResults from "./pages/SearchResults";
 import VenueManagement from "./pages/VenueManagement";
+import AllBookings from "./pages/AllBookings";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/business/service/:id/edit" element={<ServiceEdit />} />
           <Route path="/business/manage-venue" element={<VenueManagement />} />
           <Route path="/search-results" element={<SearchResults />} />
+          <Route path="/my-bookings" element={<AllBookings />} />
           <Route path="/service/:id" element={<ServiceDetail />} />
         </Routes>
       </Layout>

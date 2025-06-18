@@ -19,25 +19,17 @@ const CustomerDashboard = () => {
 
     loadUser();
 
+    // Get all services
     api
       .get("/business/all-services")
       .then((res) => setServices(res.data))
       .catch((err) => console.error("Error fetching services:", err));
 
-    setBookings([
-      {
-        id: 1,
-        title: "Wedding Event",
-        date: "2025-07-21",
-        status: "Confirmed",
-      },
-      {
-        id: 2,
-        title: "Birthday Party",
-        date: "2025-08-02",
-        status: "Pending",
-      },
-    ]);
+    // Get bookings for logged-in user
+    api
+      .get("/booking/my-bookings")
+      .then((res) => setBookings(res.data))
+      .catch((err) => console.error("Error fetching bookings:", err));
   }, []);
 
   return (
@@ -65,20 +57,22 @@ const CustomerDashboard = () => {
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {bookings.map((booking) => (
               <div
-                key={booking.id}
+                key={booking._id}
                 className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow hover:shadow-md border border-gray-100 dark:border-gray-700"
               >
                 <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-                  {booking.title}
+                  {booking.venueId?.title || "Booked Event"}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Date: {booking.date}
+                  Date: {new Date(booking.eventDate).toLocaleDateString()}
                 </p>
                 <span
                   className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${
                     booking.status === "Confirmed"
                       ? "bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200"
-                      : "bg-yellow-100 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-200"
+                      : booking.status === "Pending"
+                      ? "bg-yellow-100 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-200"
+                      : "bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200"
                   }`}
                 >
                   {booking.status}
@@ -89,50 +83,50 @@ const CustomerDashboard = () => {
         )}
       </section>
 
-{/* Explore Venues */}
-<section className="mb-10">
-  <h2 className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400 mb-4">
-    🎉 Explore Venues
-  </h2>
-  {services.length === 0 ? (
-    <p className="text-gray-500 dark:text-gray-400">
-      No venues available right now.
-    </p>
-  ) : (
-    <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-      {services
-        .filter((service) => service.type === "venue")
-        .map((venue) => (
-          <div
-            key={venue._id}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300"
-          >
-            <img
-              src={venue.image || "https://via.placeholder.com/300x200"}
-              alt={venue.title}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-4">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
-                {venue.title}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">
-                {venue.description}
-              </p>
-              <button
-                className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
-                onClick={() => navigate(`/service/${venue._id}`)}
-              >
-                View Details
-              </button>
-            </div>
+      {/* Explore Venues */}
+      <section className="mb-10">
+        <h2 className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400 mb-4">
+          🎉 Explore Venues
+        </h2>
+        {services.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400">
+            No venues available right now.
+          </p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+            {services
+              .filter((service) => service.type === "venue")
+              .map((venue) => (
+                <div
+                  key={venue._id}
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300"
+                >
+                  <img
+                    src={venue.image || "https://via.placeholder.com/300x200"}
+                    alt={venue.title}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+                      {venue.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">
+                      {venue.description}
+                    </p>
+                    <button
+                      className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+                      onClick={() => navigate(`/service/${venue._id}`)}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
-        ))}
-    </div>
-  )}
-</section>
+        )}
+      </section>
 
-      {/* Booking History */}
+      {/* Booking History (Optional Static Data) */}
       <section>
         <h2 className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400 mb-4">
           📜 Booking History
