@@ -13,6 +13,7 @@ import Layout from "./components/Layout";
 import SearchResults from "./pages/SearchResults";
 import VenueManagement from "./pages/VenueManagement";
 import AllBookings from "./pages/AllBookings";
+import BusinessBookings from "./pages/BusinessBookings";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/business-dashboard" element={<BusinessDashboard />} />
           <Route path="/business/service/:id" element={<ServiceDetails />} />
           <Route path="/business/service/:id/edit" element={<ServiceEdit />} />
+          <Route path="/business/bookings" element={<BusinessBookings />} />
           <Route path="/business/manage-venue" element={<VenueManagement />} />
           <Route path="/search-results" element={<SearchResults />} />
           <Route path="/my-bookings" element={<AllBookings />} />

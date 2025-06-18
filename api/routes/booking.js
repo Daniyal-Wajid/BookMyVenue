@@ -3,7 +3,26 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const Booking = require("../models/Booking");
 
+// Get bookings for business owner
+router.get("/business-bookings", auth, async (req, res) => {
+  try {
+    const bookings = await Booking.find({ businessId: req.user.userId })
+      .populate("customerId", "name email")
+      .populate("venueId", "title")
+      .populate("decorIds", "title")
+      .populate("cateringIds", "title")
+      .populate("menuIds", "title")
+      .sort({ eventDate: 1 });
+
+    res.json(bookings);
+  } catch (err) {
+    console.error("Error fetching business bookings:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 // Get all bookings for the logged-in customer
+
 router.get("/my-bookings", auth, async (req, res) => {
   try {
     const bookings = await Booking.find({ customerId: req.user.userId })
