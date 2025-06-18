@@ -5,6 +5,13 @@ const serviceSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   image: { type: String },
+  price: { type: Number },
+  location: { type: String },
+  type: {
+    type: String,
+    enum: ["decor", "catering", "venue", "menu"],
+  },
+  occasionTypes: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
 });
 

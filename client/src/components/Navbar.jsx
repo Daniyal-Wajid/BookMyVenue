@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 export default function Navbar() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
-
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -42,37 +41,53 @@ export default function Navbar() {
       </Link>
 
       <div className="flex items-center gap-6">
+        {/* Navigation Buttons */}
+        <Link to="/" className="text-gray-700 dark:text-gray-200 hover:underline">
+          Home
+        </Link>
+
+        {user && (
+          <>
+            <Link
+              to={
+                user.role === "customer"
+                  ? "/customer-dashboard"
+                  : "/business-dashboard"
+              }
+              className="text-gray-700 dark:text-gray-200 hover:underline"
+            >
+              Dashboard
+            </Link>
+
+            <Link
+              to="/bookings"
+              className="text-gray-700 dark:text-gray-200 hover:underline"
+            >
+              Bookings
+            </Link>
+
+            {/* Profile Icon */}
+            <Link to="/profile" title="Profile">
+              <span className="text-xl text-gray-700 dark:text-gray-200">👤</span>
+            </Link>
+          </>
+        )}
+
         {/* Dark Mode Toggle */}
         <button
           onClick={toggleDarkMode}
-          className="bg-gray-200 dark:bg-gray-600 text-black dark:text-white px-4 py-2 rounded hover:bg-gray-300 dark:hover:bg-gray-700"
+          className="bg-gray-200 dark:bg-gray-600 text-black dark:text-white px-3 py-2 rounded hover:bg-gray-300 dark:hover:bg-gray-700"
+          title="Toggle Light/Dark Mode"
         >
-          {isDark ? "☀️ Light" : "🌙 Dark"}
+          {isDark ? "☀️" : "🌙"}
         </button>
 
+        {/* Auth Buttons */}
         {user ? (
           <>
             <span className="text-gray-700 dark:text-gray-200 font-medium">
               Welcome, {user.name}
             </span>
-
-            {user.role === "customer" && (
-              <Link
-                to="/customer-dashboard"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Customer Dashboard
-              </Link>
-            )}
-
-            {user.role === "business" && (
-              <Link
-                to="/business-dashboard"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Business Dashboard
-              </Link>
-            )}
 
             <button
               onClick={handleLogout}
@@ -101,3 +116,4 @@ export default function Navbar() {
     </nav>
   );
 }
+  
