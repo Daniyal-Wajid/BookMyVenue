@@ -84,4 +84,95 @@ router.post("/book", auth, async (req, res) => {
   }
 });
 
+router.get("/my-pending-bookings", auth, async (req, res) => {
+  try {
+    console.log("userId from token:", req.user.userId);
+
+    const bookings = await Booking.find({
+      businessId: req.user.userId,
+      status: "Pending",
+    }).populate("venueId");
+
+    console.log("Found bookings:", bookings.length);
+    res.json(bookings);
+  } catch (err) {
+    console.error("Error fetching pending bookings:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    if (booking.businessId.toString() !== req.user.userId)
+      return res.status(403).json({ message: "Not authorized" });
+
+    await booking.deleteOne();
+    res.json({ message: "Booking deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+// Cancel a booking by changing status to "Cancelled"
+router.put("/:id/cancel", auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // Only customer who booked or business owner can cancel
+    if (
+      booking.customerId.toString() !== req.user.userId &&
+      booking.businessId.toString() !== req.user.userId
+    ) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    booking.status = "Cancelled";
+    await booking.save();
+
+    res.json({ message: "Booking cancelled successfully", booking });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.put("/:id/complete", auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    if (booking.businessId.toString() !== req.user.userId)
+      return res.status(403).json({ message: "Not authorized" });
+
+    booking.status = "Confirmed";
+    await booking.save();
+
+    res.json({ message: "Booking marked as completed" });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get booking history (Completed or Cancelled) for logged-in customer
+router.get("/my-booking-history", auth, async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      customerId: req.user.userId,
+      status: { $in: ["Cancelled", "Confirmed"] },
+    })
+      .populate("venueId")
+      .populate("decorIds")
+      .populate("cateringIds")
+      .populate("menuIds")
+      .sort({ eventDate: -1 }); // Most recent first
+
+    res.json(bookings);
+  } catch (err) {
+    console.error("Error fetching booking history:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 module.exports = router;

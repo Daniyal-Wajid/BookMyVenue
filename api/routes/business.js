@@ -88,6 +88,33 @@ router.get("/all-services", async (req, res) => {
   }
 });
 
+router.get("/service/:id", async (req, res) => {
+  try {
+    const venue = await Service.findById(req.params.id);
+    if (!venue || venue.type !== "venue") {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+
+    const userId = venue.userId;
+
+    const [decorItems, cateringItems, menuItems] = await Promise.all([
+      Service.find({ userId, type: "decor" }),
+      Service.find({ userId, type: "catering" }),
+      Service.find({ userId, type: "menu" }),
+    ]);
+
+    res.json({
+      venue,
+      decorItems,
+      cateringItems,
+      menuItems,
+    });
+  } catch (err) {
+    console.error("Error fetching service details:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 router.get("/services/:id", async (req, res) => {
   try {
     const venue = await Service.findById(req.params.id);
@@ -115,18 +142,79 @@ router.get("/services/:id", async (req, res) => {
   }
 });
 
-// Update service
+// PUT /business/service/:id (venue + related items update)
 router.put("/service/:id", auth, async (req, res) => {
+  const venueId = req.params.id;
+  const userId = req.user.userId;
+  const {
+    title,
+    location,
+    price,
+    description,
+    image,
+    occasionTypes,
+    decorItems = [],
+    cateringItems = [],
+    menuItems = [],
+  } = req.body;
+
   try {
-    const service = await Service.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.userId },
-      req.body,
+    // Update venue
+    const updatedVenue = await Service.findOneAndUpdate(
+      { _id: venueId, userId, type: "venue" },
+      { title, location, price, description, image, occasionTypes },
       { new: true, runValidators: true }
     );
-    if (!service) return res.status(404).json({ message: "Service not found" });
-    res.json(service);
+    if (!updatedVenue)
+      return res
+        .status(404)
+        .json({ message: "Venue not found or unauthorized" });
+
+    // Helper function to upsert items
+    const upsertItems = async (items, type) => {
+      for (const item of items) {
+        if (item._id && !item._id.toString().startsWith("new-")) {
+          // Update existing item
+          await Service.findOneAndUpdate(
+            { _id: item._id, userId, type },
+            {
+              title: item.title || item.name,
+              description: item.description,
+              price: item.price,
+              image: item.image,
+              category: item.category || undefined,
+            },
+            { new: true, runValidators: true }
+          );
+        } else {
+          // Create new item
+          const newItem = new Service({
+            userId,
+            title: item.title || item.name,
+            description: item.description,
+            price: item.price,
+            image: item.image,
+            type,
+            location: "", // optional, set if you want
+            occasionTypes: [],
+            category: item.category || undefined,
+          });
+          await newItem.save();
+        }
+      }
+    };
+
+    // Upsert all related items
+    await upsertItems(decorItems, "decor");
+    await upsertItems(cateringItems, "catering");
+    await upsertItems(menuItems, "menu");
+
+    // Optionally, delete removed items (you'd need to track removed IDs on frontend)
+
+    res.json({ message: "Venue and related services updated successfully" });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -141,19 +229,6 @@ router.delete("/service/:id", auth, async (req, res) => {
     res.json({ message: "Service deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
-  }
-});
-
-router.get("/services/:id", async (req, res) => {
-  try {
-    const service = await Service.findById(req.params.id);
-    if (!service) {
-      return res.status(404).json({ message: "Service not found" });
-    }
-    res.json(service);
-  } catch (err) {
-    console.error("Error fetching service:", err.message);
-    res.status(500).json({ message: "Server error" });
   }
 });
 

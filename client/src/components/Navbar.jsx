@@ -3,10 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) setUser(JSON.parse(savedUser));
+
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
       document.documentElement.classList.add("dark");
@@ -41,13 +44,14 @@ export default function Navbar() {
       </Link>
 
       <div className="flex items-center gap-6">
-        {/* Navigation Buttons */}
+        {/* Common Navigation */}
         <Link to="/" className="text-gray-700 dark:text-gray-200 hover:underline">
           Home
         </Link>
 
         {user && (
           <>
+            {/* Dashboard Route based on Role */}
             <Link
               to={
                 user.role === "customer"
@@ -59,14 +63,17 @@ export default function Navbar() {
               Dashboard
             </Link>
 
-            <Link
-              to="/business/bookings"
-              className="text-gray-700 dark:text-gray-200 hover:underline"
-            >
-              Bookings
-            </Link>
+            {/* Only show Bookings link for business owners */}
+            {user.role === "business" && (
+              <Link
+                to="/business/bookings"
+                className="text-gray-700 dark:text-gray-200 hover:underline"
+              >
+                Bookings
+              </Link>
+            )}
 
-            {/* Profile Icon */}
+            {/* Profile */}
             <Link to="/profile" title="Profile">
               <span className="text-xl text-gray-700 dark:text-gray-200">👤</span>
             </Link>
@@ -82,7 +89,7 @@ export default function Navbar() {
           {isDark ? "☀️" : "🌙"}
         </button>
 
-        {/* Auth Buttons */}
+        {/* Auth Section */}
         {user ? (
           <>
             <span className="text-gray-700 dark:text-gray-200 font-medium">
@@ -116,4 +123,3 @@ export default function Navbar() {
     </nav>
   );
 }
-  

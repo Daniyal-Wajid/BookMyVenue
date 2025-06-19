@@ -18,6 +18,7 @@ app.get("/", (req, res) => res.send("API is running..."));
 
 // Routes
 app.use("/api/auth", authRoutes);
+
 app.use("/api/business", businessRoutes);
 app.use("/api/booking", require("./routes/booking"));
 
