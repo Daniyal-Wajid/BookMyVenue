@@ -2,23 +2,70 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const Service = require("../models/Service");
+const upload = require("../middleware/upload");
 
-router.post("/add-multiple-services", auth, async (req, res) => {
+// Add Venue
+router.post("/add-service", auth, upload.single("image"), async (req, res) => {
   try {
-    const { decorItems = [], cateringItems = [], menuItems = [] } = req.body;
+    const { title, description, type, price, location, occasionTypes } =
+      req.body;
+
+    const newService = new Service({
+      userId: req.user.userId,
+      title,
+      description,
+      image: req.file ? `/uploads/${req.file.filename}` : "",
+      type,
+      price: price || 0,
+      location: location || "",
+      occasionTypes: type === "venue" ? occasionTypes || [] : [],
+    });
+
+    await newService.save();
+    res
+      .status(201)
+      .json({ msg: "Service added successfully", venueId: newService._id });
+  } catch (err) {
+    console.error("Error adding service:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Add Related Services (decor/catering/menu)
+router.post("/add-multiple-services", auth, upload.any(), async (req, res) => {
+  try {
     const userId = req.user.userId;
+    const venueId = req.body.venueId;
+    if (!venueId)
+      return res
+        .status(400)
+        .json({ msg: "venueId is required for related services." });
+
+    const decorItems = JSON.parse(req.body.decorItems || "[]");
+    const cateringItems = JSON.parse(req.body.cateringItems || "[]");
+    const menuItems = JSON.parse(req.body.menuItems || "[]");
+
+    const findImage = (type, index) => {
+      const key = `${type}Image_${index}`;
+      const file = req.files.find((f) => f.fieldname === key);
+      return file ? `/uploads/${file.filename}` : "";
+    };
 
     const mapItems = (items, type) =>
-      items.map((item) => ({
-        userId,
-        title: item.title,
-        description: item.description,
-        image: item.image || "",
-        price: item.price || 0,
-        location: item.location || "", // will store empty string if not provided
-        type,
-        occasionTypes: item.occasionTypes || [], // optional for future
-      }));
+      items
+        .filter((item) => item && (item.title || item.name))
+        .map((item, index) => ({
+          userId,
+          title: item.title || item.name,
+          description: item.description || "",
+          image: findImage(type, index),
+          price: item.price || 0,
+          location: item.location || "",
+          type,
+          occasionTypes: item.occasionTypes || [],
+          category: item.category || undefined,
+          venueId, // ✅ add venueId
+        }));
 
     const servicesToSave = [
       ...mapItems(decorItems, "decor"),
@@ -26,9 +73,8 @@ router.post("/add-multiple-services", auth, async (req, res) => {
       ...mapItems(menuItems, "menu"),
     ];
 
-    if (servicesToSave.length === 0) {
+    if (servicesToSave.length === 0)
       return res.status(400).json({ msg: "No services provided." });
-    }
 
     await Service.insertMany(servicesToSave);
     res.status(201).json({ msg: "All services added successfully." });
@@ -38,47 +84,7 @@ router.post("/add-multiple-services", auth, async (req, res) => {
   }
 });
 
-// routes/business.js
-router.post("/add-service", auth, async (req, res) => {
-  try {
-    const { title, description, image, type, price, location, occasionTypes } =
-      req.body;
-
-    if (!title || !description) {
-      return res
-        .status(400)
-        .json({ msg: "Title and description are required" });
-    }
-
-    const newService = new Service({
-      userId: req.user.userId,
-      title,
-      description,
-      image,
-      type,
-      price: price || 0,
-      location: location || "",
-      occasionTypes: type === "venue" ? occasionTypes || [] : [],
-    });
-
-    await newService.save();
-    res.status(201).json({ msg: "Service added successfully" });
-  } catch (err) {
-    console.error("Error adding service:", err);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-router.get("/my-services", auth, async (req, res) => {
-  try {
-    const services = await Service.find({ userId: req.user.userId });
-    res.json(services);
-  } catch (err) {
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-// Get all services (for customers to browse)
+// Get All Services (admin/customer browse)
 router.get("/all-services", async (req, res) => {
   try {
     const services = await Service.find({});
@@ -88,64 +94,43 @@ router.get("/all-services", async (req, res) => {
   }
 });
 
+// Get My Services (business dashboard)
+router.get("/my-services", auth, async (req, res) => {
+  try {
+    const services = await Service.find({ userId: req.user.userId });
+    res.json(services);
+  } catch (err) {
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get Venue and its Related Services
 router.get("/service/:id", async (req, res) => {
   try {
     const venue = await Service.findById(req.params.id);
-    if (!venue || venue.type !== "venue") {
+    if (!venue || venue.type !== "venue")
       return res.status(404).json({ message: "Venue not found" });
-    }
 
-    const userId = venue.userId;
+    const venueId = venue._id;
 
     const [decorItems, cateringItems, menuItems] = await Promise.all([
-      Service.find({ userId, type: "decor" }),
-      Service.find({ userId, type: "catering" }),
-      Service.find({ userId, type: "menu" }),
+      Service.find({ venueId, type: "decor" }),
+      Service.find({ venueId, type: "catering" }),
+      Service.find({ venueId, type: "menu" }),
     ]);
 
-    res.json({
-      venue,
-      decorItems,
-      cateringItems,
-      menuItems,
-    });
+    res.json({ venue, decorItems, cateringItems, menuItems });
   } catch (err) {
     console.error("Error fetching service details:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-router.get("/services/:id", async (req, res) => {
-  try {
-    const venue = await Service.findById(req.params.id);
-    if (!venue || venue.type !== "venue") {
-      return res.status(404).json({ message: "Venue not found" });
-    }
-
-    const userId = venue.userId;
-
-    const [decorItems, cateringItems, menuItems] = await Promise.all([
-      Service.find({ userId, type: "decor" }),
-      Service.find({ userId, type: "catering" }),
-      Service.find({ userId, type: "menu" }),
-    ]);
-
-    res.json({
-      venue,
-      decorItems,
-      cateringItems,
-      menuItems,
-    });
-  } catch (err) {
-    console.error("Error fetching service details:", err.message);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// PUT /business/service/:id (venue + related items update)
+// Update Venue and Related Services
 router.put("/service/:id", auth, async (req, res) => {
   const venueId = req.params.id;
   const userId = req.user.userId;
+
   const {
     title,
     location,
@@ -159,7 +144,7 @@ router.put("/service/:id", auth, async (req, res) => {
   } = req.body;
 
   try {
-    // Update venue
+    // ✅ Update venue
     const updatedVenue = await Service.findOneAndUpdate(
       { _id: venueId, userId, type: "venue" },
       { title, location, price, description, image, occasionTypes },
@@ -170,15 +155,18 @@ router.put("/service/:id", auth, async (req, res) => {
         .status(404)
         .json({ message: "Venue not found or unauthorized" });
 
-    // Helper function to upsert items
+    // ✅ Helper for creating/updating services
     const upsertItems = async (items, type) => {
       for (const item of items) {
+        const itemTitle = item.title || item.name;
+        if (!itemTitle) continue;
+
         if (item._id && !item._id.toString().startsWith("new-")) {
-          // Update existing item
+          // Update
           await Service.findOneAndUpdate(
             { _id: item._id, userId, type },
             {
-              title: item.title || item.name,
+              title: itemTitle,
               description: item.description,
               price: item.price,
               image: item.image,
@@ -187,38 +175,36 @@ router.put("/service/:id", auth, async (req, res) => {
             { new: true, runValidators: true }
           );
         } else {
-          // Create new item
+          // Create (✅ add venueId)
           const newItem = new Service({
             userId,
-            title: item.title || item.name,
+            title: itemTitle,
             description: item.description,
             price: item.price,
             image: item.image,
             type,
-            location: "", // optional, set if you want
+            location: "",
             occasionTypes: [],
             category: item.category || undefined,
+            venueId, // ✅ FIXED: include venue reference
           });
           await newItem.save();
         }
       }
     };
 
-    // Upsert all related items
     await upsertItems(decorItems, "decor");
     await upsertItems(cateringItems, "catering");
     await upsertItems(menuItems, "menu");
 
-    // Optionally, delete removed items (you'd need to track removed IDs on frontend)
-
     res.json({ message: "Venue and related services updated successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Error updating venue/services:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Delete service
+// Delete Any Service
 router.delete("/service/:id", auth, async (req, res) => {
   try {
     const service = await Service.findOneAndDelete({

@@ -64,13 +64,15 @@ const ServiceDetails = () => {
   const { venue, decorItems, cateringItems, menuItems } = data;
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white w-full sm:px-12 lg:px-24">
+    <div className="pt-28 p-6 bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white w-full sm:px-12 lg:px-24">
       <h1 className="text-3xl font-bold mb-4">{venue.title}</h1>
       <img
-        src={venue.image || "https://via.placeholder.com/600x400"}
-        alt={venue.title}
-        className="w-full h-64 object-cover rounded mb-4"
-      />
+      src={
+    venue.image
+      ? `http://localhost:5000${venue.image}`
+      : "https://via.placeholder.com/600x400"
+  }
+/>
       <p className="mb-6 text-gray-800 dark:text-gray-300">{venue.description}</p>
 
       <div className="flex space-x-4 mb-8">
@@ -109,12 +111,19 @@ const ServiceList = ({ title, services }) => {
             className="border dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded shadow"
           >
             <img
-              src={service.image || "https://via.placeholder.com/300x200"}
-              alt={service.title}
-              className="w-full h-32 object-cover mb-2 rounded"
+               src={
+    service.image
+      ? `http://localhost:5000${service.image}`
+      : "https://via.placeholder.com/300x200"
+  }
             />
-            <h3 className="text-xl font-semibold">{service.title}</h3>
-            <p className="text-gray-600 dark:text-gray-300">{service.description}</p>
+            <h3 className="text-xl font-semibold">
+  {service.title || service.name}
+</h3>
+<p className="text-gray-600 dark:text-gray-300">
+  {service.description || (service.category ? `Category: ${service.category}` : "No description")}
+</p>
+
             {service.price !== undefined && (
               <p className="mt-2 font-semibold">Price: ${service.price}</p>
             )}

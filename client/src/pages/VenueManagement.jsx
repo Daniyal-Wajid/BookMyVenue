@@ -9,259 +9,221 @@ const VenueManagement = () => {
   const [venueName, setVenueName] = useState("");
   const [venueLocation, setVenueLocation] = useState("");
   const [venueDesc, setVenueDesc] = useState("");
-  const [venueImage, setVenueImage] = useState("");
+  const [venueImageFile, setVenueImageFile] = useState(null);
   const [venuePrice, setVenuePrice] = useState("");
 
-  // Décor
-  const [decorTitle, setDecorTitle] = useState("");
-  const [decorDesc, setDecorDesc] = useState("");
-  const [decorImage, setDecorImage] = useState("");
-  const [decorPrice, setDecorPrice] = useState("");
+  // Services State
   const [decors, setDecors] = useState([]);
-
-  // Catering
-  const [cateringTitle, setCateringTitle] = useState("");
-  const [cateringDesc, setCateringDesc] = useState("");
-  const [cateringImage, setCateringImage] = useState("");
-  const [cateringPrice, setCateringPrice] = useState("");
   const [caterings, setCaterings] = useState([]);
-
-  // Menus
-  const [menuName, setMenuName] = useState("");
-  const [menuPrice, setMenuPrice] = useState("");
-  const [menuCategory, setMenuCategory] = useState("");
-  const [menuImage, setMenuImage] = useState("");
   const [menus, setMenus] = useState([]);
+
+  const [decorInputs, setDecorInputs] = useState({ title: "", description: "", price: "", image: null });
+  const [cateringInputs, setCateringInputs] = useState({ title: "", description: "", price: "", image: null });
+  const [menuInputs, setMenuInputs] = useState({ name: "", price: "", category: "", image: null });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
-  const handleAddDecor = () => {
-    if (decorTitle && decorDesc) {
-      setDecors([
-        ...decors,
-        {
-          title: decorTitle,
-          description: decorDesc,
-          image: decorImage,
-          price: decorPrice,
-        },
-      ]);
-      setDecorTitle("");
-      setDecorDesc("");
-      setDecorImage("");
-      setDecorPrice("");
+ const handleAddService = (type) => {
+  if (type === "decor") {
+    const { title, description, price, image } = decorInputs;
+    if (title && description && price && image) {
+      setDecors([...decors, decorInputs]);
+      setDecorInputs({ title: "", description: "", price: "", image: null });
+    } else {
+      alert("Please fill all fields for Decor before adding.");
     }
-  };
-
-  const handleAddCatering = () => {
-    if (cateringTitle && cateringDesc) {
-      setCaterings([
-        ...caterings,
-        {
-          title: cateringTitle,
-          description: cateringDesc,
-          image: cateringImage,
-          price: cateringPrice,
-        },
-      ]);
-      setCateringTitle("");
-      setCateringDesc("");
-      setCateringImage("");
-      setCateringPrice("");
+  } else if (type === "catering") {
+    const { title, description, price, image } = cateringInputs;
+    if (title && description && price && image) {
+      setCaterings([...caterings, cateringInputs]);
+      setCateringInputs({ title: "", description: "", price: "", image: null });
+    } else {
+      alert("Please fill all fields for Catering before adding.");
     }
-  };
-
-  const handleAddMenu = () => {
-    if (menuName && menuPrice && menuCategory) {
+  } else if (type === "menu") {
+    const { name, price, category, image } = menuInputs;
+    if (name && price && category && image) {
       setMenus([
-        ...menus,
-        {
-          name: menuName,
-          price: menuPrice,
-          category: menuCategory,
-          image: menuImage,
-        },
-      ]);
-      setMenuName("");
-      setMenuPrice("");
-      setMenuCategory("");
-      setMenuImage("");
+      ...menus,
+      {
+        title: name, // ✅ Fix: add title
+        description: "No description", // ✅ Fix: required in backend
+        price,
+        category,
+        image,
+      },
+    ]);
+      setMenuInputs({ name: "", price: "", category: "", image: null });
+    } else {
+      alert("Please fill all fields for Menu before adding.");
     }
-  };
+  }
+};
 
-  const handleSubmitVenue = async (e) => {
-    e.preventDefault();
 
-    try {
-      await api.post("/business/add-service", {
-        title: venueName,
-        description: venueDesc,
-        image: venueImage,
-        type: "venue",
-        price: parseFloat(venuePrice) || 0,
-        location: venueLocation,
-        occasionTypes,
-      });
+const handleSubmitVenue = async (e) => {
+  e.preventDefault();
 
-      await api.post("/business/add-multiple-services", {
-        decorItems: decors.map((d) => ({
-          ...d,
-          price: parseFloat(d.price) || 0,
-          location: venueLocation,
-        })),
-        cateringItems: caterings.map((c) => ({
-          ...c,
-          price: parseFloat(c.price) || 0,
-          location: venueLocation,
-        })),
-        menuItems: menus.map((m) => ({
-          title: m.name,
-          description: `${m.category} – Rs ${m.price}`,
-          image: m.image,
-          price: parseFloat(m.price) || 0,
-          location: venueLocation,
-        })),
-      });
+  try {
+    // Step 1: Submit Venue
+    const formData = new FormData();
+    formData.append("title", venueName);
+    formData.append("description", venueDesc);
+    formData.append("price", parseFloat(venuePrice) || 0);
+    formData.append("location", venueLocation);
+    formData.append("type", "venue");
+    formData.append("image", venueImageFile);
+    occasionTypes.forEach((type) => formData.append("occasionTypes[]", type));
 
-      alert("Venue and services submitted successfully!");
+    const venueRes = await api.post("/business/add-service", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-      // Reset fields
-      setVenueName("");
-      setVenueLocation("");
-      setVenueDesc("");
-      setVenueImage("");
-      setVenuePrice("");
-      setOccasionTypes([]);
-      setDecors([]);
-      setCaterings([]);
-      setMenus([]);
-    } catch (err) {
-      console.error("Error adding venue and services:", err.message);
+    const venueId = venueRes.data.venueId;
+    if (!venueId) {
+      alert("Venue ID not received!");
+      return;
     }
-  };
+
+    // Step 2: Submit Related Services with venueId
+    const servicesFormData = new FormData();
+    servicesFormData.append("venueId", venueId); // ✅
+
+    servicesFormData.append("decorItems", JSON.stringify(decors));
+    servicesFormData.append("cateringItems", JSON.stringify(caterings));
+    servicesFormData.append("menuItems", JSON.stringify(menus));
+
+    decors.forEach((d, i) => {
+      if (d.image) servicesFormData.append(`decorImage_${i}`, d.image);
+    });
+
+    caterings.forEach((c, i) => {
+      if (c.image) servicesFormData.append(`cateringImage_${i}`, c.image);
+    });
+
+    menus.forEach((m, i) => {
+      if (m.image) servicesFormData.append(`menuImage_${i}`, m.image);
+    });
+
+    await api.post("/business/add-multiple-services", servicesFormData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    alert("Venue and services submitted successfully!");
+    setVenueName("");
+    setVenueLocation("");
+    setVenueDesc("");
+    setVenueImageFile(null);
+    setVenuePrice("");
+    setOccasionTypes([]);
+    setDecors([]);
+    setCaterings([]);
+    setMenus([]);
+  } catch (err) {
+    console.error("Error adding venue and services:", err.message);
+    alert("Something went wrong. Check console.");
+  }
+};
+
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-      <div className="p-6 mx-auto max-w-5xl space-y-10">
-        <h1 className="text-3xl font-bold">
-          Hi {user?.username}, Add Venue with Services
-        </h1>
+    <div className="pt-28 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+      <div className="p-6 mx-auto max-w-5xl space-y-8">
+        <h1 className="text-3xl font-bold">Hi {user?.name}, Add Venue with Services</h1>
 
-        <form onSubmit={handleSubmitVenue} className="p-6 space-y-6 bg-white dark:bg-gray-800 rounded shadow">
-          <h2 className="text-xl font-semibold">Venue Info</h2>
+        <form onSubmit={handleSubmitVenue} className="space-y-6" encType="multipart/form-data">
+          {/* Venue Info */}
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Venue Info</h2>
+            <input className="w-full p-2 rounded bg-white dark:bg-gray-700" type="text" placeholder="Venue Name" value={venueName} onChange={(e) => setVenueName(e.target.value)} required />
+            <input className="w-full p-2 rounded bg-white dark:bg-gray-700" type="text" placeholder="Location" value={venueLocation} onChange={(e) => setVenueLocation(e.target.value)} required />
+            <input className="w-full p-2 rounded bg-white dark:bg-gray-700" type="number" placeholder="Venue Price" value={venuePrice} onChange={(e) => setVenuePrice(e.target.value)} />
+            <textarea className="w-full p-2 rounded bg-white dark:bg-gray-700" placeholder="Description" value={venueDesc} onChange={(e) => setVenueDesc(e.target.value)} />
+            <input className="w-full p-2 rounded bg-white dark:bg-gray-700" type="file" accept="image/*" onChange={(e) => setVenueImageFile(e.target.files[0])} required />
+          </div>
 
-          <input
-            type="text"
-            placeholder="Venue Name"
-            value={venueName}
-            onChange={(e) => setVenueName(e.target.value)}
-            className="w-full p-2 border rounded dark:bg-gray-700"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Location"
-            value={venueLocation}
-            onChange={(e) => setVenueLocation(e.target.value)}
-            className="w-full p-2 border rounded dark:bg-gray-700"
-            required
-          />
-          <input
-            type="number"
-            placeholder="Venue Price"
-            value={venuePrice}
-            onChange={(e) => setVenuePrice(e.target.value)}
-            className="w-full p-2 border rounded dark:bg-gray-700"
-          />
-          <textarea
-            placeholder="Description"
-            value={venueDesc}
-            onChange={(e) => setVenueDesc(e.target.value)}
-            className="w-full p-2 border rounded dark:bg-gray-700"
-          />
-          <input
-            type="text"
-            placeholder="Image URL"
-            value={venueImage}
-            onChange={(e) => setVenueImage(e.target.value)}
-            className="w-full p-2 border rounded dark:bg-gray-700"
-          />
-
-          <h2 className="text-xl font-semibold">Occasions</h2>
-          <div className="flex flex-wrap gap-4 mb-4">
-            {["Wedding", "Birthday", "Corporate", "Engagement", "Anniversary"].map((type) => (
-              <label key={type} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  value={type}
-                  checked={occasionTypes.includes(type)}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setOccasionTypes((prev) =>
-                      prev.includes(value)
-                        ? prev.filter((item) => item !== value)
-                        : [...prev, value]
-                    );
-                  }}
-                />
-                {type}
-              </label>
-            ))}
+          {/* Occasions */}
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Occasions</h2>
+            <div className="flex flex-wrap gap-4">
+              {["Wedding", "Birthday", "Corporate", "Engagement", "Anniversary"].map((type) => (
+                <label key={type} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    value={type}
+                    checked={occasionTypes.includes(type)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setOccasionTypes((prev) =>
+                        prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value]
+                      );
+                    }}
+                  />
+                  {type}
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Decor */}
-          <h2 className="text-xl font-semibold">Décor Services</h2>
-          <div className="flex flex-wrap gap-2 mb-2">
-            <input type="text" placeholder="Title" value={decorTitle} onChange={(e) => setDecorTitle(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <input type="text" placeholder="Description" value={decorDesc} onChange={(e) => setDecorDesc(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <input type="text" placeholder="Image URL" value={decorImage} onChange={(e) => setDecorImage(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <input type="number" placeholder="Price" value={decorPrice} onChange={(e) => setDecorPrice(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <button type="button" onClick={handleAddDecor} className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Add</button>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Decor Services</h2>
+            <div className="flex flex-wrap gap-2">
+              <input type="text" placeholder="Title" value={decorInputs.title} onChange={(e) => setDecorInputs({ ...decorInputs, title: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <input type="text" placeholder="Description" value={decorInputs.description} onChange={(e) => setDecorInputs({ ...decorInputs, description: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <input type="number" placeholder="Price" value={decorInputs.price} onChange={(e) => setDecorInputs({ ...decorInputs, price: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <input type="file" accept="image/*" onChange={(e) => setDecorInputs({ ...decorInputs, image: e.target.files[0] })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <button type="button" onClick={() => handleAddService("decor")} className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Add</button>
+            </div>
+            <ul className="list-disc pl-5 text-sm">
+              {decors.map((d, i) => (
+                <li key={i}>{d.title} - Rs {d.price}</li>
+              ))}
+            </ul>
           </div>
-          <ul className="pl-5 list-disc text-sm text-gray-600 dark:text-gray-300">
-            {decors.map((d, i) => (
-              <li key={i}>{d.title} – {d.description} – Rs {d.price} {d.image && `(img: ${d.image})`}</li>
-            ))}
-          </ul>
 
           {/* Catering */}
-          <h2 className="text-xl font-semibold">Catering Services</h2>
-          <div className="flex flex-wrap gap-2 mb-2">
-            <input type="text" placeholder="Title" value={cateringTitle} onChange={(e) => setCateringTitle(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <input type="text" placeholder="Description" value={cateringDesc} onChange={(e) => setCateringDesc(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <input type="text" placeholder="Image URL" value={cateringImage} onChange={(e) => setCateringImage(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <input type="number" placeholder="Price" value={cateringPrice} onChange={(e) => setCateringPrice(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <button type="button" onClick={handleAddCatering} className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Add</button>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Catering Services</h2>
+            <div className="flex flex-wrap gap-2">
+              <input type="text" placeholder="Title" value={cateringInputs.title} onChange={(e) => setCateringInputs({ ...cateringInputs, title: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <input type="text" placeholder="Description" value={cateringInputs.description} onChange={(e) => setCateringInputs({ ...cateringInputs, description: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <input type="number" placeholder="Price" value={cateringInputs.price} onChange={(e) => setCateringInputs({ ...cateringInputs, price: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <input type="file" accept="image/*" onChange={(e) => setCateringInputs({ ...cateringInputs, image: e.target.files[0] })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <button type="button" onClick={() => handleAddService("catering")} className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Add</button>
+            </div>
+            <ul className="list-disc pl-5 text-sm">
+              {caterings.map((c, i) => (
+                <li key={i}>{c.title} - Rs {c.price}</li>
+              ))}
+            </ul>
           </div>
-          <ul className="pl-5 list-disc text-sm text-gray-600 dark:text-gray-300">
-            {caterings.map((c, i) => (
-              <li key={i}>{c.title} – {c.description} – Rs {c.price} {c.image && `(img: ${c.image})`}</li>
-            ))}
-          </ul>
 
           {/* Menu */}
-          <h2 className="text-xl font-semibold">Menu Items</h2>
-          <div className="grid grid-cols-1 gap-2 mb-2 md:grid-cols-4">
-            <input type="text" placeholder="Name" value={menuName} onChange={(e) => setMenuName(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <input type="number" placeholder="Price" value={menuPrice} onChange={(e) => setMenuPrice(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
-            <select value={menuCategory} onChange={(e) => setMenuCategory(e.target.value)} className="p-2 border rounded dark:bg-gray-700">
-              <option value="">Category</option>
-              <option value="starter">Starter</option>
-              <option value="main">Main Course</option>
-              <option value="dessert">Dessert</option>
-              <option value="beverage">Beverage</option>
-            </select>
-            <input type="text" placeholder="Image URL" value={menuImage} onChange={(e) => setMenuImage(e.target.value)} className="p-2 border rounded dark:bg-gray-700" />
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Menu Items</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <input type="text" placeholder="Name" value={menuInputs.name} onChange={(e) => setMenuInputs({ ...menuInputs, name: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <input type="number" placeholder="Price" value={menuInputs.price} onChange={(e) => setMenuInputs({ ...menuInputs, price: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700" />
+              <select value={menuInputs.category} onChange={(e) => setMenuInputs({ ...menuInputs, category: e.target.value })} className="p-2 rounded bg-white dark:bg-gray-700">
+                <option value="">Category</option>
+                <option value="starter">Starter</option>
+                <option value="main">Main Course</option>
+                <option value="dessert">Dessert</option>
+                <option value="beverage">Beverage</option>
+              </select>
+              <input type="file" accept="image/*" onChange={(e) => setMenuInputs({ ...menuInputs, image: e.target.files[0] })} className="p-2 rounded bg-white dark:bg-gray-700" />
+            </div>
+            <button type="button" onClick={() => handleAddService("menu")} className="mt-2 px-4 py-2 text-white bg-purple-600 rounded hover:bg-purple-700">Add Menu</button>
+            <ul className="list-disc pl-5 text-sm">
+              {menus.map((m, i) => (
+                <li key={i}>{m.name} ({m.category}) - Rs {m.price}</li>
+              ))}
+            </ul>
           </div>
-          <button type="button" onClick={handleAddMenu} className="mb-2 px-4 py-2 text-white bg-purple-600 rounded hover:bg-purple-700">Add Menu Item</button>
-          <ul className="pl-5 list-disc text-sm text-gray-600 dark:text-gray-300">
-            {menus.map((m, i) => (
-              <li key={i}>{m.name} – {m.category} – Rs {m.price} {m.image && `(img: ${m.image})`}</li>
-            ))}
-          </ul>
 
           <button type="submit" className="px-6 py-2 text-white bg-green-600 rounded hover:bg-green-700">
             Submit Venue

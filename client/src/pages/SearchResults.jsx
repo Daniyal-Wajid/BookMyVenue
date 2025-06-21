@@ -1,65 +1,81 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import api from "../services/api";
 
-export default function SearchResults() {
+const SearchResults = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const keyword = queryParams.get("keyword");
+
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { search } = useLocation();
-
-  const query = new URLSearchParams(search).get("keyword");
 
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const res = await axios.get(`/business/search?keyword=${query}`);
-        setResults(res.data);
-      } catch (err) {
-        console.error("Search error:", err.message);
+        const response = await api.get(`/services/search?keyword=${keyword}`);
+        setResults(response.data);
+      } catch (error) {
+        console.error("Search fetch error", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (query) fetchResults();
-  }, [query]);
+    if (keyword) fetchResults();
+  }, [keyword]);
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900 py-10 px-6 md:px-12">
-      <h2 className="text-3xl font-bold mb-6">
-        Search Results for "{query}"
+    <div className="min-h-screen bg-[#f9fbfd] dark:bg-gray-900 text-gray-800 dark:text-gray-100 py-16 px-6 font-sans">
+      <h2 className="text-3xl font-semibold text-center mb-10 text-indigo-700 dark:text-indigo-400">
+        Search Results for "{keyword}"
       </h2>
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="text-center text-gray-600 dark:text-gray-300">Loading...</p>
       ) : results.length === 0 ? (
-        <p>No results found.</p>
+        <p className="text-center text-gray-500 dark:text-gray-400">
+          No venues found matching your search.
+        </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {results.map((item) => (
-            <div
-              key={item._id}
-              className="bg-white p-4 rounded shadow hover:shadow-md transition"
-            >
-              <h3 className="text-lg font-semibold">{item.title}</h3>
-              <p className="text-sm text-gray-700">{item.description}</p>
-              {item.image && (
+        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {results
+            .filter((service) => service.type === "venue")
+            .map((venue) => (
+              <div
+                key={venue._id}
+                className="bg-[#f1f5f9] dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300"
+              >
                 <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-40 object-cover mt-2 rounded"
+                  src={
+                    venue.image
+                      ? `http://localhost:5000${venue.image}`
+                      : "https://via.placeholder.com/300x200"
+                  }
+                  alt={venue.title}
+                  className="w-full h-48 object-cover"
                 />
-              )}
-              <p className="text-xs mt-1 italic text-gray-500">Type: {item.type}</p>
-              {item.occasionTypes && item.occasionTypes.length > 0 && (
-                <p className="text-xs text-gray-600 mt-1">
-                  Occasions: {item.occasionTypes.join(", ")}
-                </p>
-              )}
-            </div>
-          ))}
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    {venue.title}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">
+                    {venue.description}
+                  </p>
+                  <button
+                    className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+                    onClick={() => navigate(`/service/${venue._id}`)}
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
         </div>
       )}
     </div>
   );
-}
+};
+
+export default SearchResults;

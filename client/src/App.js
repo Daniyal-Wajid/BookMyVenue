@@ -14,6 +14,8 @@ import SearchResults from "./pages/SearchResults";
 import VenueManagement from "./pages/VenueManagement";
 import AllBookings from "./pages/AllBookings";
 import BusinessBookings from "./pages/BusinessBookings";
+import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
           <Route path="/business/manage-venue" element={<VenueManagement />} />
           <Route path="/search-results" element={<SearchResults />} />
           <Route path="/my-bookings" element={<AllBookings />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/service/:id" element={<ServiceDetail />} />
         </Routes>
       </Layout>

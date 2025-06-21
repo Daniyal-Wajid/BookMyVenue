@@ -13,13 +13,50 @@ export default function Dashboard() {
     setUserType(type);
   }, [navigate]);
 
-  return (
-    <div className="p-10 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+  const getGreeting = () => {
+    switch (userType) {
+      case "admin":
+        return {
+          title: "Welcome Admin!",
+          desc: "Manage users, services, and platform settings here.",
+          icon: "🛠️",
+          bg: "bg-red-100 dark:bg-red-900",
+        };
+      case "business":
+        return {
+          title: "Hello Business Owner!",
+          desc: "Manage your services, bookings, and profile.",
+          icon: "📊",
+          bg: "bg-yellow-100 dark:bg-yellow-900",
+        };
+      case "customer":
+        return {
+          title: "Welcome!",
+          desc: "Browse and book the best venues and services.",
+          icon: "🎉",
+          bg: "bg-indigo-100 dark:bg-indigo-900",
+        };
+      default:
+        return {
+          title: "Dashboard",
+          desc: "Welcome to your personalized dashboard.",
+          icon: "👋",
+          bg: "bg-gray-100 dark:bg-gray-800",
+        };
+    }
+  };
 
-      {userType === "admin" && <p>Welcome Admin, manage everything here!</p>}
-      {userType === "business" && <p>Welcome Business Owner, manage your events!</p>}
-      {userType === "customer" && <p>Welcome Customer, book your dream events!</p>}
+  const greeting = getGreeting();
+
+  return (
+    <div className={`min-h-screen py-20 px-6 md:px-12 ${greeting.bg} text-gray-900 dark:text-white transition-all`}>
+      <div className="max-w-3xl mx-auto text-center bg-white dark:bg-gray-900 rounded-xl shadow-lg p-10 border border-gray-200 dark:border-gray-700">
+        <div className="text-5xl mb-4">{greeting.icon}</div>
+        <h1 className="text-3xl font-bold mb-3 text-indigo-700 dark:text-pink-300">
+          {greeting.title}
+        </h1>
+        <p className="text-lg text-gray-700 dark:text-gray-300">{greeting.desc}</p>
+      </div>
     </div>
   );
 }
