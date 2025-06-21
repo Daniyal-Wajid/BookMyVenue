@@ -235,4 +235,18 @@ router.get("/bookings-by-venue/:id", async (req, res) => {
   }
 });
 
+router.get("/all", async (req, res) => {
+  try {
+    const bookings = await Booking.find()
+      .populate("customerId", "name email")
+      .populate("businessId", "name email")
+      .populate("venueId", "title");
+
+    res.json(bookings);
+  } catch (err) {
+    console.error("Error fetching all bookings:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 module.exports = router;
