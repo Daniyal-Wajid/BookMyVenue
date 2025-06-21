@@ -66,6 +66,26 @@ router.post("/book", auth, async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 });
+// Confirm booking
+router.put("/:id/confirm", auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // Only business owner can confirm the booking
+    if (booking.businessId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    booking.status = "Confirmed"; // Set status to Confirmed
+    await booking.save();
+
+    res.json({ message: "Booking confirmed successfully", booking });
+  } catch (err) {
+    console.error("Error confirming booking:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 // Update payment status
 router.put("/:id/payment-status", auth, async (req, res) => {
@@ -246,6 +266,26 @@ router.get("/all", async (req, res) => {
   } catch (err) {
     console.error("Error fetching all bookings:", err);
     res.status(500).json({ msg: "Server error" });
+  }
+});
+
+router.put("/:id/verify-payment", auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    if (booking.businessId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    booking.paymentStatus = "Paid";
+    booking.status = "Confirmed";
+    await booking.save();
+
+    res.json({ message: "Payment verified and booking confirmed", booking });
+  } catch (err) {
+    console.error("Error verifying payment:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

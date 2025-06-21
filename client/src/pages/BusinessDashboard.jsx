@@ -7,7 +7,7 @@ const BusinessDashboard = () => {
   const [services, setServices] = useState([]);
   const [pendingBookings, setPendingBookings] = useState([]);
   const [confirmedBookings, setConfirmedBookings] = useState([]);
-  const [completedBookings, setCompletedBookings] = useState([]); // History
+  const [completedBookings, setCompletedBookings] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState(0);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
 
@@ -53,12 +53,27 @@ const BusinessDashboard = () => {
     }
   };
 
+  // Verify payment and confirm booking
+  const verifyPayment = async (id) => {
+    try {
+      await api.put(`/booking/${id}/verify-payment`);
+      fetchBookings();
+      alert("Payment verified and booking confirmed!");
+    } catch (err) {
+      console.error("Error verifying payment:", err);
+      alert("Failed to verify payment.");
+    }
+  };
+
+  // Mark booking as completed
   const markAsCompleted = async (id) => {
     try {
       await api.put(`/booking/${id}/complete`);
       fetchBookings();
+      alert("Booking marked as completed!");
     } catch (err) {
-      console.error("Error marking as complete:", err);
+      console.error("Error marking booking complete:", err);
+      alert("Failed to mark booking as complete.");
     }
   };
 
@@ -157,18 +172,23 @@ const BusinessDashboard = () => {
                   </p>
                 </div>
                 <div className="flex gap-3 mt-3">
-                  <button
-                    onClick={() => markAsCompleted(booking._id)}
-                    className={`px-4 py-2 rounded text-white text-sm ${
-                      booking.paymentStatus === "Paid"
-                        ? "bg-blue-600 hover:bg-blue-700"
-                        : "bg-gray-400 cursor-not-allowed"
-                    }`}
-                    disabled={booking.paymentStatus !== "Paid"}
-                    title={booking.paymentStatus !== "Paid" ? "Cannot confirm unpaid booking" : "Mark as Completed"}
-                  >
-                    Verify Payment
-                  </button>
+                  {booking.paymentStatus === "Unpaid" ? (
+                    <button
+                      onClick={() => verifyPayment(booking._id)}
+                      className="px-4 py-2 rounded text-white text-sm bg-blue-600 hover:bg-blue-700"
+                      title="Verify Payment"
+                    >
+                      Verify Payment
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="px-4 py-2 rounded text-white text-sm bg-gray-400 cursor-not-allowed"
+                      title="Payment already verified"
+                    >
+                      Payment Verified
+                    </button>
+                  )}
                   <button
                     onClick={() => deleteBooking(booking._id)}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
@@ -206,14 +226,24 @@ const BusinessDashboard = () => {
                     <span className="text-green-600 font-semibold">{booking.paymentStatus || "Paid"}</span>
                   </p>
                 </div>
-                <div className="flex gap-3 mt-3">
-                  <button
-                    onClick={() => markAsCompleted(booking._id)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                    title="Mark booking as completed"
-                  >
-                    Mark as Completed
-                  </button>
+                <div className="mt-3 flex gap-3">
+                  {booking.status === "Confirmed" && booking.paymentStatus === "Paid" ? (
+                    <button
+                      onClick={() => markAsCompleted(booking._id)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+                      title="Mark booking as complete"
+                    >
+                      Mark as Complete
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="px-4 py-2 bg-gray-400 cursor-not-allowed text-white rounded text-sm"
+                      title="Cannot mark complete"
+                    >
+                      Complete
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
